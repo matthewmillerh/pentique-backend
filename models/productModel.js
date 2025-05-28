@@ -25,6 +25,7 @@ export const getProductsByCategory = async categoryID => {
     }
 }
 
+// Get a single product by the specified ID
 export const getProductById = async id => {
     const queryString = `
         SELECT product.*, category1.category1Name, category2.category2Name, category3.category3Name

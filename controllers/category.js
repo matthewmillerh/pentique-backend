@@ -1,7 +1,13 @@
-//import functions from categoryModel
-import { getCategory1, getAllCategories } from '../models/categoryModel.js'
+// Import functions from categoryModel
+import {
+    getCategory1,
+    getAllCategories,
+    renameCategory,
+    createCategory,
+    deleteCategory,
+} from '../models/categoryModel.js'
 
-// get all the categories
+// Get all the categories
 export const getAllCategoriesController = async (req, res) => {
     try {
         const results = await getAllCategories()
@@ -15,7 +21,7 @@ export const getAllCategoriesController = async (req, res) => {
     }
 }
 
-//get all level 1 categories
+// Get all level 1 categories
 export const getCategory1Controller = async (req, res) => {
     try {
         const results = await getCategory1()
@@ -29,12 +35,142 @@ export const getCategory1Controller = async (req, res) => {
     }
 }
 
+// Rename a product category
+export const renameCategoryController = async (req, res) => {
+    const { categoryName, categoryID, categoryLevel } = req.body
+
+    // Ensure all required fields are present and valid types
+    if (!categoryName || typeof categoryName !== 'string' || categoryName.trim() === '') {
+        return res
+            .status(400)
+            .json({ message: 'Category name is required and must be a non-empty string.' })
+    }
+    if (!categoryID || typeof categoryID !== 'number' || categoryID <= 0) {
+        return res
+            .status(400)
+            .json({ message: 'Category ID is required and must be a positive number.' })
+    }
+    if (!categoryLevel || typeof categoryLevel !== 'number' || ![1, 2, 3].includes(categoryLevel)) {
+        return res
+            .status(400)
+            .json({ message: 'Category level is required and must be 1, 2, or 3.' })
+    }
+
+    try {
+        // Execute the renameCategory function from the model
+        const result = await renameCategory(categoryName.trim(), categoryID, categoryLevel)
+
+        if (result && result.affectedRows > 0) {
+            res.status(200).json({
+                message: 'Category renamed successfully!',
+                categoryID,
+                categoryName,
+            })
+        } else {
+            res.status(404).json({
+                message: `Category with ID ${categoryID} at level ${categoryLevel} not found or no change was needed.`,
+            })
+        }
+    } catch (error) {
+        console.error('Error in renameCategoryControllerr:', error)
+        res.status(500).json({ message: 'Failed to rename category due to a server error.' })
+    }
+}
+
+// Create a new product category
+export const createCategoryController = async (req, res) => {
+    const { categoryName, categoryLevel, parentId } = req.body
+
+    // Ensure all required fields are present and valid types
+    if (!categoryName || typeof categoryName !== 'string' || categoryName.trim() === '') {
+        return res
+            .status(400)
+            .json({ message: 'Category name is required and must be a non-empty string.' })
+    }
+    if (
+        (categoryLevel === 1 && parentId != null && parentId !== undefined) ||
+        (categoryLevel !== 1 && (typeof parentId !== 'number' || parentId <= 0))
+    ) {
+        return res.status(400).json({
+            message:
+                'Parent category ID must be null or undefined for level 1, and a positive number for level 2 or 3.',
+        })
+    }
+    if (!categoryLevel || typeof categoryLevel !== 'number' || ![1, 2, 3].includes(categoryLevel)) {
+        return res
+            .status(400)
+            .json({ message: 'Category level is required and must be 1, 2, or 3.' })
+    }
+
+    try {
+        // Execute the createCategory function from the model
+        const result = await createCategory(categoryName.trim(), parentId, categoryLevel)
+
+        if (result && result.affectedRows > 0) {
+            res.status(201).json({
+                message: 'Category created successfully!',
+                categoryName,
+                parentId,
+                categoryLevel,
+                id: result.insertId,
+            })
+        } else {
+            res.status(400).json({
+                message: 'Failed to create category. Please check the provided details.',
+            })
+        }
+    } catch (error) {
+        console.error('Error in createCategoryController:', error)
+        res.status(500).json({
+            error: 'Failed to create category',
+            message: error.message,
+        })
+    }
+}
+
+// Delete a product category
+export const deleteCategoryController = async (req, res) => {
+    const { categoryLevel, categoryID } = req.body
+
+    // Ensure all required fields are present and valid types
+    if (!categoryID || typeof categoryID !== 'number' || categoryID <= 0) {
+        return res
+            .status(400)
+            .json({ message: 'Category ID is required and must be a positive number.' })
+    }
+    if (!categoryLevel || typeof categoryLevel !== 'number' || ![1, 2, 3].includes(categoryLevel)) {
+        return res
+            .status(400)
+            .json({ message: 'Category level is required and must be 1, 2, or 3.' })
+    }
+
+    try {
+        // Execute the deleteCategory function from the model
+        const result = await deleteCategory(categoryLevel, categoryID)
+
+        if (result && result.affectedRows > 0) {
+            res.status(200).json({
+                message: 'Category deleted successfully!',
+                categoryID,
+                categoryLevel,
+            })
+        } else {
+            res.status(404).json({
+                message: `Category with ID ${categoryID} at level ${categoryLevel} not found.`,
+            })
+        }
+    } catch (error) {
+        console.error('Error in deleteCategoryController:', error)
+        res.status(500).json({ message: 'Failed to delete category due to a server error.' })
+    }
+}
+
+// Restructure the category data to have nested subcategories
 function transformCategories(data) {
     const finalNavigation = []
     // Maps to keep track of created category objects by their unique identifiers
-    // This helps us avoid creating duplicate objects and link children correctly.
     const topLevelMap = new Map() // Key: category1ID, Value: category object {id, name, subcategories}
-    const level2Map = new Map() // Key: `${category1ID}-${category2Name}`, Value: category object {name, subcategories}
+    const level2Map = new Map() // Key: category2ID, Value: category object {id, name, subcategories}
 
     data.forEach(row => {
         // --- Process Top Level Category ---
@@ -51,13 +187,12 @@ function transformCategories(data) {
 
         // --- Process Level 2 Category ---
         if (row.category2Name !== null) {
-            // Create a unique key for level 2 based on its parent and its own name
-            const level2Key = `${row.category1ID}-${row.category2Name}`
+            const level2Key = row.category2ID
 
             if (!level2Map.has(level2Key)) {
                 const level2Category = {
-                    // Note: No ID for level 2 provided in your data, so we use just name
                     name: row.category2Name,
+                    id: row.category2ID,
                     subcategories: [],
                 }
                 currentTopCategory.subcategories.push(level2Category)
@@ -68,21 +203,19 @@ function transformCategories(data) {
             // --- Process Level 3 Category ---
             if (row.category3Name !== null) {
                 // Check if this level 3 category already exists under the current level 2.
-                // We check by name since there's no ID for level 3.
                 const existingLevel3 = currentLevel2Category.subcategories.find(
-                    sub => sub.name === row.category3Name,
+                    sub => sub.id === row.category3ID,
                 )
 
                 if (!existingLevel3) {
                     const level3Category = {
-                        // Note: No ID for level 3 provided in your data, so we use just name
                         name: row.category3Name,
+                        id: row.category3ID,
                     }
                     currentLevel2Category.subcategories.push(level3Category)
                 }
             }
         }
     })
-    console.log(finalNavigation)
     return finalNavigation
 }
