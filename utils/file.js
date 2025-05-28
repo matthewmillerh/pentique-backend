@@ -30,3 +30,22 @@ export const deleteCategoryDirectory = category => {
 
     return true
 }
+
+// Creates a directory for the specified category
+export const createCategoryDirectory = category => {
+    const categoryPathBase = path.resolve(__dirname, '../../pentique/public/images/', category)
+    let categoryPath = categoryPathBase
+
+    if (fs.existsSync(categoryPath)) {
+        console.error(`Category directory already exists: ${categoryPath}`)
+        return false
+    }
+
+    try {
+        fs.mkdirSync(categoryPath, { recursive: true })
+        return true
+    } catch (error) {
+        console.error(`Failed to create category directory: ${error.message}`)
+        return false
+    }
+}

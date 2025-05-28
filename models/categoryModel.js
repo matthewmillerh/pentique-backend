@@ -124,14 +124,7 @@ export const deleteCategory = async (categoryLevel, categoryID, categoryPath) =>
 
     try {
         const results = await db.query(queryString, [categoryID])
-
-        // If the category is deleted successfully, also delete its directory
-        if (results[0].affectedRows > 0) {
-            if (deleteCategoryDirectory(categoryPath)) {
-                return results[0]
-            }
-        }
-        return { affectedRows: 0 }
+        return results[0]
     } catch (error) {
         console.error('Database error in deleteCategory:', error)
         throw error
