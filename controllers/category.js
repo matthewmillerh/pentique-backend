@@ -130,7 +130,7 @@ export const createCategoryController = async (req, res) => {
 
 // Delete a product category
 export const deleteCategoryController = async (req, res) => {
-    const { categoryLevel, categoryID } = req.body
+    const { categoryLevel, categoryID, categoryPath } = req.body
 
     // Ensure all required fields are present and valid types
     if (!categoryID || typeof categoryID !== 'number' || categoryID <= 0) {
@@ -146,7 +146,7 @@ export const deleteCategoryController = async (req, res) => {
 
     try {
         // Execute the deleteCategory function from the model
-        const result = await deleteCategory(categoryLevel, categoryID)
+        const result = await deleteCategory(categoryLevel, categoryID, categoryPath)
 
         if (result && result.affectedRows > 0) {
             res.status(200).json({

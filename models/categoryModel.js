@@ -1,5 +1,6 @@
 //import db connection
 import db from '../config/database.js'
+import { deleteCategoryDirectory } from '../utils/file.js'
 
 // Get all categories and subcategories
 export const getAllCategories = async () => {
@@ -103,7 +104,7 @@ export const createCategory = async (categoryName, parentID, categoryLevel) => {
 }
 
 // Delete a category
-export const deleteCategory = async (categoryLevel, categoryID) => {
+export const deleteCategory = async (categoryLevel, categoryID, categoryPath) => {
     let queryString = ''
 
     // Determine which category table to delete from
@@ -123,7 +124,14 @@ export const deleteCategory = async (categoryLevel, categoryID) => {
 
     try {
         const results = await db.query(queryString, [categoryID])
-        return results[0]
+
+        // If the category is deleted successfully, also delete its directory
+        if (results[0].affectedRows > 0) {
+            if (deleteCategoryDirectory(categoryPath)) {
+                return results[0]
+            }
+        }
+        return { affectedRows: 0 }
     } catch (error) {
         console.error('Database error in deleteCategory:', error)
         throw error
