@@ -43,3 +43,58 @@ export const getProductById = async id => {
         throw error
     }
 }
+
+// Update a product by the specified ID
+export const updateProductById = async productData => {
+    const queryString = `
+        UPDATE product 
+        SET 
+            productName = ?, 
+            productDescription = ?, 
+            productPrice = ?, 
+            productCode = ?,
+            productHidden = ?,
+            productSpecial = ?,
+            productSpecialPrice = ?,
+            productStockStatus = ?,
+            productImage0 = ?,
+            productImage1 = ?,
+            productImage2 = ?,
+            productImage3 = ?
+        WHERE productID = ?`
+
+    try {
+        const results = await db.query(queryString, [
+            productData.productName,
+            productData.productDescription,
+            productData.productPrice,
+            productData.productCode,
+            productData.productHidden,
+            productData.productSpecial,
+            productData.productSpecialPrice,
+            productData.productStockStatus,
+            productData.productImage0,
+            productData.productImage1,
+            productData.productImage2,
+            productData.productImage3,
+            productData.productID,
+        ])
+        return results[0]
+    } catch (error) {
+        console.error('Database error in updateProductById:', error)
+        throw error
+    }
+}
+
+// Delete a product by the specified ID
+export const deleteProductById = async id => {
+    const queryString = 'DELETE FROM product WHERE productID = ?'
+
+    try {
+        const results = await db.query(queryString, [id])
+        return results[0]
+    } catch (error) {
+        console.error('Database error in deleteProductById:', error)
+        throw error
+    }
+}

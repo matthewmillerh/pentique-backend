@@ -1,7 +1,10 @@
 import mysql from 'mysql2/promise'
 import dotenv from 'dotenv'
 
-dotenv.config()
+const NODE_ENV = process.env.NODE_ENV || 'development'
+dotenv.config({
+    path: `./.env.${NODE_ENV}`,
+})
 
 const host = process.env.DB_URL
 const userName = process.env.DB_USERNAME
@@ -17,5 +20,4 @@ const db = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0,
 })
-
 export default db
