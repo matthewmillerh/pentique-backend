@@ -5,6 +5,50 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// Helper function to determine correct image path (new vs old structure)
+export const getCorrectImagePath = (imageName, segments) => {
+    // Try new structure first (with productID folder)
+    const newPath = path.join('images', ...segments, imageName)
+
+    // Fallback to old structure (without productID folder - remove last segment)
+    const oldSegments = segments.slice(0, -1)
+    const oldPath = path.join('images', ...oldSegments, imageName)
+
+    if (fs.existsSync(newPath)) {
+        return segments.join('/')
+    } else if (fs.existsSync(oldPath)) {
+        return oldSegments.join('/')
+    } else {
+        // Default to new structure if neither exists
+        return segments.join('/')
+    }
+}
+
+// Generate image URLs for a product
+export const generateProductImageUrls = (product, req) => {
+    const baseImageUrl = `${req.protocol}://${req.get('host')}/images`
+
+    const segments = [
+        product.category1Name,
+        product.category2Name,
+        product.category3Name,
+        product.productID.toString(),
+    ].filter(Boolean)
+
+    // Only include URLs for images that exist
+    const imageNames = [
+        product.productImage0,
+        product.productImage1,
+        product.productImage2,
+        product.productImage3,
+    ].filter(Boolean)
+
+    return imageNames.map(imageName => {
+        const correctPath = getCorrectImagePath(imageName, segments)
+        return `${baseImageUrl}/${correctPath}/${imageName}`
+    })
+}
+
 // Deletes the specified category directory and all its contents
 export const deleteCategoryDirectory = category => {
     const categoryPathBase = path.resolve(__dirname, '../../pentique/public/images/', category)
@@ -54,7 +98,7 @@ export const createCategoryDirectory = category => {
 // The categories array should contain the category names in order
 export const updateProductImages = (categories, images, productID) => {
     const basePath = path.join(
-        '../../pentique/public/images',
+        '../images',
         categories[0], // Use the first category as the base path
         categories[1] || '', // Use the second category if it exists
         categories[2] || '', // Use the third category if it exists

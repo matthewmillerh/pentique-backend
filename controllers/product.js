@@ -5,12 +5,19 @@ import {
     updateProductById,
     deleteProductById,
 } from '../models/productModel.js'
-import { updateProductImages, deleteProductImages } from '../utils/file.js'
+import {
+    updateProductImages,
+    deleteProductImages,
+    generateProductImageUrls,
+} from '../utils/file.js'
 
 // Get products by category1ID
 export const getProductsByCategoryController = async (req, res) => {
     try {
         const results = await getProductsByCategory(req.params.category1ID)
+        results.forEach(product => {
+            product.imageUrls = generateProductImageUrls(product, req)
+        })
         res.json(results)
     } catch (error) {
         console.error('Error in getProductsByCategoryController:', error)
@@ -24,8 +31,14 @@ export const getProductsByCategoryController = async (req, res) => {
 // Get a single product by productID
 export const getProductByIdController = async (req, res) => {
     try {
-        const results = await getProductById(req.params.id)
-        res.json(results)
+        const product = await getProductById(req.params.id)
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' })
+        }
+
+        product.imageUrls = generateProductImageUrls(product, req)
+
+        res.json(product)
     } catch (error) {
         console.error('Error in getProductByIdController:', error)
         res.status(500).json({

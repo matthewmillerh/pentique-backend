@@ -32,6 +32,10 @@ logInfo('Express app initialized')
 app.use(express.json())
 logInfo('Express JSON middleware added')
 
+// Serve images from the correct directory structure
+app.use('/images', express.static('images'))
+logInfo('Static images middleware added')
+
 //use cors
 // Configure CORS to allow requests from all origins
 app.use(
