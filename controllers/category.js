@@ -7,7 +7,11 @@ import {
     deleteCategory,
 } from '../models/categoryModel.js'
 
-import { createCategoryDirectory, deleteCategoryDirectory } from '../utils/file.js'
+import {
+    createCategoryDirectory,
+    deleteCategoryDirectory,
+    generateProductImageUrls,
+} from '../utils/file.js'
 
 // Get all the categories
 export const getAllCategoriesController = async (req, res) => {
@@ -27,6 +31,11 @@ export const getAllCategoriesController = async (req, res) => {
 export const getCategory1Controller = async (req, res) => {
     try {
         const results = await getCategory1()
+
+        results.forEach(product => {
+            product.imageUrls = generateProductImageUrls(product, req)
+        })
+
         res.json(results)
     } catch (error) {
         console.error('Error in getCategory1Controller:', error)

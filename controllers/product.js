@@ -82,6 +82,9 @@ export const updateProductByIdController = async (req, res) => {
         // Get the updated product data (including new image filenames)
         const updatedProduct = await getProductById(productData.productID)
 
+        // Add image URLs to the updated product
+        updatedProduct.imageUrls = generateProductImageUrls(updatedProduct, req)
+
         // Send the updated product data back to frontend
         res.json(updatedProduct)
     } catch (error) {

@@ -31,7 +31,7 @@ export const getAllCategories = async () => {
 // Get all top level categories
 export const getCategory1 = async () => {
     const queryString = `
-        SELECT product.productFileName, category1.category1Name, category2.category2Name, category3.category3Name, category1.category1ID 
+        SELECT product.productImage0, product.productImage1, product.productImage2, product.productImage3, product.productID, category1.category1Name, category2.category2Name, category3.category3Name, category1.category1ID 
         FROM product
         LEFT OUTER JOIN category1 ON category1.category1ID = product.category1ID 
         LEFT OUTER JOIN category2 ON category2.category2ID = product.category2ID 

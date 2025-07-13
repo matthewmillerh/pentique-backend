@@ -43,10 +43,15 @@ export const generateProductImageUrls = (product, req) => {
         product.productImage3,
     ].filter(Boolean)
 
-    return imageNames.map(imageName => {
+    const imageUrls = imageNames.map(imageName => {
         const correctPath = getCorrectImagePath(imageName, segments)
         return `${baseImageUrl}/${correctPath}/${imageName}`
     })
+
+    if (imageUrls.length === 0) {
+        imageUrls.push(`${baseImageUrl}/no-image.png`)
+    }
+    return imageUrls
 }
 
 // Deletes the specified category directory and all its contents
