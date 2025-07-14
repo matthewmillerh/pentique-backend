@@ -58,19 +58,9 @@ export const updateProductByIdController = async (req, res) => {
         await updateProductById(productData)
 
         // Update product images if provided
-        let categories = [
-            productData.category1Name,
-            productData.category2Name,
-            productData.category3Name,
-        ]
-
         if (images && images.some(img => img)) {
             // Check if any images exist
-            const imagesUpdated = await updateProductImages(
-                categories,
-                images,
-                productData.productID,
-            )
+            const imagesUpdated = await updateProductImages(images, productData.productID)
             if (!imagesUpdated) {
                 console.error('Failed to update product images')
                 return res.status(500).json({
