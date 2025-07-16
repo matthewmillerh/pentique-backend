@@ -7,11 +7,7 @@ import {
     deleteCategory,
 } from '../models/categoryModel.js'
 
-import {
-    createCategoryDirectory,
-    deleteCategoryDirectory,
-    generateProductImageUrls,
-} from '../utils/file.js'
+import { generateProductImageUrls } from '../utils/file.js'
 
 // Get all the categories
 export const getAllCategoriesController = async (req, res) => {
@@ -90,7 +86,7 @@ export const renameCategoryController = async (req, res) => {
 
 // Create a new product category
 export const createCategoryController = async (req, res) => {
-    const { categoryName, categoryLevel, parentId, categoryPath } = req.body
+    const { categoryName, categoryLevel, parentId } = req.body
 
     // Ensure all required fields are present and valid types
     if (!categoryName || typeof categoryName !== 'string' || categoryName.trim() === '') {
@@ -113,25 +109,20 @@ export const createCategoryController = async (req, res) => {
             .json({ message: 'Category level is required and must be 1, 2, or 3.' })
     }
 
+    const trimmedName = categoryName.trim()
+
     try {
         // Execute the createCategory function from the model
-        const result = await createCategory(categoryName.trim(), parentId, categoryLevel)
+        const result = await createCategory(trimmedName, parentId, categoryLevel)
 
         if (result && result.affectedRows > 0) {
-            // If the category is created successfully, also create its directory
-            if (createCategoryDirectory(categoryPath)) {
-                res.status(201).json({
-                    message: 'Category created successfully!',
-                    categoryName,
-                    parentId,
-                    categoryLevel,
-                    id: result.insertId,
-                })
-            } else {
-                res.status(500).json({
-                    message: 'Failed to create category directory.',
-                })
-            }
+            res.status(201).json({
+                message: 'Category created successfully!',
+                categoryName: trimmedName,
+                parentId,
+                categoryLevel,
+                id: result.insertId,
+            })
         } else {
             res.status(400).json({
                 message: 'Failed to create category. Please check the provided details.',
@@ -167,14 +158,11 @@ export const deleteCategoryController = async (req, res) => {
         const result = await deleteCategory(categoryLevel, categoryID, categoryPath)
 
         if (result && result.affectedRows > 0) {
-            // If the category is deleted successfully, also delete its directory
-            if (deleteCategoryDirectory(categoryPath)) {
-                res.status(200).json({
-                    message: 'Category deleted successfully!',
-                    categoryID,
-                    categoryLevel,
-                })
-            }
+            res.status(200).json({
+                message: 'Category deleted successfully!',
+                categoryID,
+                categoryLevel,
+            })
         } else {
             res.status(404).json({
                 message: `Category with ID ${categoryID} at level ${categoryLevel} not found.`,

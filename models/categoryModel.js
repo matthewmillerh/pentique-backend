@@ -1,6 +1,5 @@
 //import db connection
-import db from '../config/database.js'
-import { deleteCategoryDirectory } from '../utils/file.js'
+import db, { executeQuery } from '../config/database.js'
 
 // Get all categories and subcategories
 export const getAllCategories = async () => {
@@ -20,7 +19,7 @@ export const getAllCategories = async () => {
             category3 c3 ON c3.category2ID = c2.category2ID
     `
     try {
-        const results = await db.query(queryString)
+        const results = await executeQuery(queryString)
         return results[0]
     } catch (error) {
         console.error('Database error in getProductsByCategory:', error)
@@ -39,7 +38,7 @@ export const getCategory1 = async () => {
         WHERE product.productFeatured=1
     `
     try {
-        const results = await db.query(queryString)
+        const results = await executeQuery(queryString)
         return results[0]
     } catch (error) {
         console.error('Database error in getCategory1:', error)
@@ -67,7 +66,7 @@ export const renameCategory = async (categoryName, categoryID, categoryLevel) =>
     }
 
     try {
-        const results = await db.query(queryString, [categoryName, categoryID])
+        const results = await executeQuery(queryString, [categoryName, categoryID])
         return results[0]
     } catch (error) {
         console.error('Database error in renameCategory:', error)
@@ -95,7 +94,7 @@ export const createCategory = async (categoryName, parentID, categoryLevel) => {
     }
 
     try {
-        const results = await db.query(queryString, [categoryName, parentID])
+        const results = await executeQuery(queryString, [categoryName, parentID])
         return results[0]
     } catch (error) {
         console.error('Database error in createCategory:', error)
@@ -104,7 +103,7 @@ export const createCategory = async (categoryName, parentID, categoryLevel) => {
 }
 
 // Delete a category
-export const deleteCategory = async (categoryLevel, categoryID, categoryPath) => {
+export const deleteCategory = async (categoryLevel, categoryID) => {
     let queryString = ''
 
     // Determine which category table to delete from
@@ -123,7 +122,7 @@ export const deleteCategory = async (categoryLevel, categoryID, categoryPath) =>
     }
 
     try {
-        const results = await db.query(queryString, [categoryID])
+        const results = await executeQuery(queryString, [categoryID])
         return results[0]
     } catch (error) {
         console.error('Database error in deleteCategory:', error)

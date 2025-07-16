@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
-import db from './config/database.js'
+import db, { executeQuery } from './config/database.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -33,7 +33,7 @@ async function getAllProducts() {
                 productImage3
             FROM product
         `
-        const [results] = await db.query(query)
+        const [results] = await executeQuery(query)
         return results
     } catch (error) {
         console.error('Error fetching products:', error)
@@ -47,7 +47,7 @@ async function getCategoryNames(category1ID, category2ID, category3ID) {
         const categories = { category1Name: null, category2Name: null, category3Name: null }
 
         if (category1ID) {
-            const [cat1] = await db.query(
+            const [cat1] = await executeQuery(
                 'SELECT category1Name FROM category1 WHERE category1ID = ?',
                 [category1ID],
             )
@@ -55,7 +55,7 @@ async function getCategoryNames(category1ID, category2ID, category3ID) {
         }
 
         if (category2ID) {
-            const [cat2] = await db.query(
+            const [cat2] = await executeQuery(
                 'SELECT category2Name FROM category2 WHERE category2ID = ?',
                 [category2ID],
             )
@@ -63,7 +63,7 @@ async function getCategoryNames(category1ID, category2ID, category3ID) {
         }
 
         if (category3ID) {
-            const [cat3] = await db.query(
+            const [cat3] = await executeQuery(
                 'SELECT category3Name FROM category3 WHERE category3ID = ?',
                 [category3ID],
             )

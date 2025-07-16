@@ -26,89 +26,112 @@ const __dirname = path.dirname(__filename)
 // }
 
 // Generate image URLs for a product with predictable naming
+// Also cleans up orphaned images that exist in folder but not in database
+// Always returns array of exactly 4 URLs (empty string for missing images)
 export const generateProductImageUrls = (product, req) => {
     const baseImageUrl = `${req.protocol}://${req.get('host')}/images`
     const productID = product.productID.toString()
+    const productDir = path.join('images/products', productID)
 
-    const imageUrls = []
+    // Initialize array with 4 empty strings
+    const imageUrls = ['', '', '', '']
+    const validImageNames = new Set()
+
+    console.log(`Generating URLs for Product ${productID}:`)
+    console.log(
+        `  Database images: ${product.productImage0 || 'none'}, ${product.productImage1 || 'none'}, ${product.productImage2 || 'none'}, ${product.productImage3 || 'none'}`,
+    )
+
+    // Get database image values for each slot
+    const dbImageNames = [
+        product.productImage0,
+        product.productImage1,
+        product.productImage2,
+        product.productImage3,
+    ]
 
     // Check for images with predictable naming: productID_0.jpg, productID_1.jpg, etc.
+    let foundPredictableImages = 0
     for (let i = 0; i < 4; i++) {
         const fileName = `${productID}_${i}.jpg`
-        const imagePath = path.join('images/products', productID, fileName)
+        const imagePath = path.join(productDir, fileName)
 
         if (fs.existsSync(imagePath)) {
-            imageUrls.push(`${baseImageUrl}/products/${productID}/${fileName}`)
+            // Only include if there's a corresponding database value OR if we're using predictable naming exclusively
+            if (dbImageNames[i] || dbImageNames.every(name => !name)) {
+                imageUrls[i] = `${baseImageUrl}/products/${productID}/${fileName}`
+                validImageNames.add(fileName)
+                foundPredictableImages++
+            } else {
+                // Delete image that exists but has no database reference
+                try {
+                    fs.unlinkSync(imagePath)
+                    console.log(`  🗑️  Deleted image with no DB reference: ${fileName}`)
+                } catch (deleteError) {
+                    console.error(`  ❌ Failed to delete ${fileName}:`, deleteError.message)
+                }
+            }
         }
     }
 
-    // If no images found with new naming, fallback to database filenames
-    if (imageUrls.length === 0) {
-        const imageNames = [
-            product.productImage0,
-            product.productImage1,
-            product.productImage2,
-            product.productImage3,
-        ].filter(Boolean)
+    console.log(`  Valid predictable images: ${foundPredictableImages}`)
 
-        imageNames.forEach(imageName => {
-            const imagePath = path.join('images/products', productID, imageName)
-            if (fs.existsSync(imagePath)) {
-                imageUrls.push(`${baseImageUrl}/products/${productID}/${imageName}`)
+    // If no images found with new naming, fallback to database filenames
+    if (foundPredictableImages === 0) {
+        console.log(`  Falling back to database filenames...`)
+        const imageFields = ['productImage0', 'productImage1', 'productImage2', 'productImage3']
+
+        imageFields.forEach((field, index) => {
+            const imageName = product[field]
+            if (imageName) {
+                const imagePath = path.join(productDir, imageName)
+                console.log(
+                    `  Checking DB image: ${imagePath} - ${fs.existsSync(imagePath) ? 'EXISTS' : 'NOT FOUND'}`,
+                )
+                if (fs.existsSync(imagePath)) {
+                    imageUrls[index] = `${baseImageUrl}/products/${productID}/${imageName}`
+                    validImageNames.add(imageName)
+                }
             }
         })
     }
 
-    if (imageUrls.length === 0) {
-        imageUrls.push(`${baseImageUrl}/no-image.png`)
-    }
+    // Clean up any remaining orphaned images in the directory
+    if (fs.existsSync(productDir)) {
+        try {
+            const allFiles = fs.readdirSync(productDir)
+            const orphanedFiles = allFiles.filter(file => !validImageNames.has(file))
 
-    return imageUrls
-}
+            if (orphanedFiles.length > 0) {
+                console.log(
+                    `  Found ${orphanedFiles.length} orphaned files to delete:`,
+                    orphanedFiles,
+                )
 
-// Deletes the specified category directory and all its contents
-export const deleteCategoryDirectory = category => {
-    const categoryPathBase = path.resolve(__dirname, '../../pentique/public/images/', category)
-    let categoryPath = categoryPathBase
-
-    if (!fs.existsSync(categoryPath)) {
-        console.error(`Category directory does not exist: ${categoryPath}`)
-        return false
-    }
-
-    // Recursively delete all files and subdirectories
-    fs.readdirSync(categoryPath).forEach(file => {
-        const filePath = `${categoryPath}/${file}`
-        if (fs.statSync(filePath).isDirectory()) {
-            deleteCategoryDirectory(filePath)
-        } else {
-            fs.unlinkSync(filePath)
+                orphanedFiles.forEach(file => {
+                    try {
+                        const filePath = path.join(productDir, file)
+                        fs.unlinkSync(filePath)
+                        console.log(`  🗑️  Deleted orphaned image: ${file}`)
+                    } catch (deleteError) {
+                        console.error(`  ❌ Failed to delete ${file}:`, deleteError.message)
+                    }
+                })
+            }
+        } catch (readError) {
+            console.error(`  ❌ Failed to read product directory:`, readError.message)
         }
-    })
-
-    // Remove the empty directory
-    fs.rmSync(categoryPath)
-
-    return true
-}
-
-// Creates a directory for the specified category
-export const createCategoryDirectory = category => {
-    const categoryPathBase = path.resolve(__dirname, '../../pentique/public/images/', category)
-    let categoryPath = categoryPathBase
-
-    if (fs.existsSync(categoryPath)) {
-        console.error(`Category directory already exists: ${categoryPath}`)
-        return false
     }
 
-    try {
-        fs.mkdirSync(categoryPath, { recursive: true })
-        return true
-    } catch (error) {
-        console.error(`Failed to create category directory: ${error.message}`)
-        return false
+    // Check if we have any images at all
+    const hasAnyImages = imageUrls.some(url => url !== '')
+    if (!hasAnyImages) {
+        console.log(`  No images found, setting first slot to default no-image.png`)
+        imageUrls[0] = `${baseImageUrl}/no-image.png`
     }
+
+    console.log(`  Final URLs array [4]: ${JSON.stringify(imageUrls)}`)
+    return imageUrls
 }
 
 // Updates product images by copying them to the appropriate directory
