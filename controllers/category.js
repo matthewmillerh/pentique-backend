@@ -2,12 +2,15 @@
 import {
     getCategory1,
     getAllCategories,
+    getAllCategoriesAdmin,
     renameCategory,
     createCategory,
     deleteCategory,
 } from '../models/categoryModel.js'
 
-// Get all the categories
+import { generateProductImageUrls } from '../utils/file.js'
+
+// Get all the categories with available products
 export const getAllCategoriesController = async (req, res) => {
     try {
         const results = await getAllCategories()
@@ -21,10 +24,29 @@ export const getAllCategoriesController = async (req, res) => {
     }
 }
 
+// Get all categories for admin view
+export const getAllCategoriesAdminController = async (req, res) => {
+    try {
+        const results = await getAllCategoriesAdmin()
+        res.json(transformCategories(results)) //restructure the data before returning
+    } catch (error) {
+        console.error('Error in getAllCategoriesAdminController:', error)
+        res.status(500).json({
+            error: 'Failed to fetch categories',
+            message: error.message,
+        })
+    }
+}
+
 // Get all level 1 categories
 export const getCategory1Controller = async (req, res) => {
     try {
         const results = await getCategory1()
+
+        results.forEach(product => {
+            product.imageUrls = generateProductImageUrls(product, req)
+        })
+
         res.json(results)
     } catch (error) {
         console.error('Error in getCategory1Controller:', error)
@@ -102,14 +124,16 @@ export const createCategoryController = async (req, res) => {
             .json({ message: 'Category level is required and must be 1, 2, or 3.' })
     }
 
+    const trimmedName = categoryName.trim()
+
     try {
         // Execute the createCategory function from the model
-        const result = await createCategory(categoryName.trim(), parentId, categoryLevel)
+        const result = await createCategory(trimmedName, parentId, categoryLevel)
 
         if (result && result.affectedRows > 0) {
             res.status(201).json({
                 message: 'Category created successfully!',
-                categoryName,
+                categoryName: trimmedName,
                 parentId,
                 categoryLevel,
                 id: result.insertId,
@@ -130,7 +154,7 @@ export const createCategoryController = async (req, res) => {
 
 // Delete a product category
 export const deleteCategoryController = async (req, res) => {
-    const { categoryLevel, categoryID } = req.body
+    const { categoryLevel, categoryID, categoryPath } = req.body
 
     // Ensure all required fields are present and valid types
     if (!categoryID || typeof categoryID !== 'number' || categoryID <= 0) {
@@ -146,7 +170,7 @@ export const deleteCategoryController = async (req, res) => {
 
     try {
         // Execute the deleteCategory function from the model
-        const result = await deleteCategory(categoryLevel, categoryID)
+        const result = await deleteCategory(categoryLevel, categoryID, categoryPath)
 
         if (result && result.affectedRows > 0) {
             res.status(200).json({
