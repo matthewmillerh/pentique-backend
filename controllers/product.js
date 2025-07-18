@@ -4,6 +4,7 @@ import {
     getProductById,
     updateProductById,
     deleteProductById,
+    addProduct,
 } from '../models/productModel.js'
 import {
     updateProductImages,
@@ -54,6 +55,10 @@ export const updateProductByIdController = async (req, res) => {
         const productData = JSON.parse(req.body.productDetails)
         const images = [req.files.image_0, req.files.image_1, req.files.image_2, req.files.image_3]
 
+        // Handle category IDs - set to null if not provided or empty
+        productData.category2ID = productData.category2ID || null
+        productData.category3ID = productData.category3ID || null
+
         // Update product data first
         await updateProductById(productData)
 
@@ -100,7 +105,7 @@ export const deleteProductByIdController = async (req, res) => {
                 req.body.product.category2Name,
                 req.body.product.category3Name,
             ]
-            deleteProductImages(categories, productID)
+            deleteProductImages(productID)
         } else {
             res.status(404).json({ error: 'Product not found' })
         }
@@ -108,6 +113,55 @@ export const deleteProductByIdController = async (req, res) => {
         console.error('Error in deleteProductByIdController:', error)
         res.status(500).json({
             error: 'Failed to delete product',
+            message: error.message,
+        })
+    }
+}
+
+// Add a new product
+export const addProductController = async (req, res) => {
+    try {
+        const productData = JSON.parse(req.body.productDetails)
+        const images = [req.files.image_0, req.files.image_1, req.files.image_2, req.files.image_3]
+
+        // Set default empty strings for image fields to avoid null constraint issues
+        productData.productImage0 = ''
+        productData.productImage1 = ''
+        productData.productImage2 = ''
+        productData.productImage3 = ''
+        productData.productFileName = '' // Legacy field no longer used
+
+        // Handle category IDs - set to null if not provided or empty
+        productData.category2ID = productData.category2ID || null
+        productData.category3ID = productData.category3ID || null
+
+        // Add the new product first to get the productID
+        const newProduct = await addProduct(productData)
+        const productID = newProduct.insertId
+
+        // Process images if provided, now that we have the productID
+        if (images && images.some(img => img)) {
+            const imagesUpdated = await updateProductImages(images, productID)
+            if (!imagesUpdated) {
+                console.error('Failed to add product images')
+                return res.status(500).json({
+                    error: 'Failed to add product images',
+                })
+            }
+        }
+
+        // Get the newly added product data (including updated image filenames)
+        const addedProduct = await getProductById(productID)
+
+        // Add image URLs to the added product
+        addedProduct.imageUrls = generateProductImageUrls(addedProduct, req)
+
+        // Send the added product data back to frontend
+        res.json(addedProduct)
+    } catch (error) {
+        console.error('Error in addProductController:', error)
+        res.status(500).json({
+            error: 'Failed to add product',
             message: error.message,
         })
     }

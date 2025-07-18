@@ -1,6 +1,29 @@
 //import db connection
 import db, { executeQuery } from '../config/database.js'
 
+// Helper function to ensure only one featured product per category1ID
+const ensureOnlyOneFeaturedProduct = async (category1ID, excludeProductID = null) => {
+    if (!category1ID) return // Skip if no category1ID
+
+    const queryString = `
+        UPDATE product 
+        SET productFeatured = 0 
+        WHERE category1ID = ? ${excludeProductID ? 'AND productID != ?' : ''}
+    `
+
+    const params = excludeProductID ? [category1ID, excludeProductID] : [category1ID]
+
+    try {
+        await executeQuery(queryString, params)
+        console.log(
+            `Set all products in category ${category1ID} to not featured${excludeProductID ? ` (excluding product ${excludeProductID})` : ''}`,
+        )
+    } catch (error) {
+        console.error('Error ensuring only one featured product:', error)
+        throw error
+    }
+}
+
 // Get all products for the specified top level category
 export const getProductsByCategory = async categoryID => {
     const queryString = `
@@ -30,6 +53,7 @@ export const getProductsByCategory = async categoryID => {
         LEFT OUTER JOIN category2 c2 ON c2.category2ID = p.category2ID 
         LEFT OUTER JOIN category3 c3 ON c3.category3ID = p.category3ID 
         WHERE p.category1ID = ?
+        ORDER BY p.productName ASC
     `
 
     try {
@@ -62,6 +86,11 @@ export const getProductById = async id => {
 
 // Update a product by the specified ID
 export const updateProductById = async productData => {
+    // If setting this product as featured, remove featured status from other products in same category
+    if (productData.productFeatured == 1 && productData.category1ID) {
+        await ensureOnlyOneFeaturedProduct(productData.category1ID, productData.productID)
+    }
+
     const queryString = `
         UPDATE product 
         SET 
@@ -76,7 +105,8 @@ export const updateProductById = async productData => {
             productImage0 = ?,
             productImage1 = ?,
             productImage2 = ?,
-            productImage3 = ?
+            productImage3 = ?,
+            productFeatured = ?
         WHERE productID = ?`
 
     try {
@@ -93,8 +123,10 @@ export const updateProductById = async productData => {
             productData.productImage1,
             productData.productImage2,
             productData.productImage3,
+            productData.productFeatured || 0,
             productData.productID,
         ])
+        console.log(results[0])
         return results[0]
     } catch (error) {
         console.error('Database error in updateProductById:', error)
@@ -111,6 +143,62 @@ export const deleteProductById = async id => {
         return results[0]
     } catch (error) {
         console.error('Database error in deleteProductById:', error)
+        throw error
+    }
+}
+
+// Adds a new product to the database
+export const addProduct = async productData => {
+    const queryString = `
+        INSERT INTO product (
+            productName, 
+            productDescription, 
+            productPrice, 
+            productCode, 
+            productHidden, 
+            productSpecial, 
+            productSpecialPrice, 
+            productStockStatus, 
+            productImage0, 
+            productImage1, 
+            productImage2, 
+            productImage3,
+            productFileName,
+            category1ID,
+            category2ID,
+            category3ID,
+            productFeatured
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+
+    // If setting this product as featured, remove featured status from other products in same category
+    if (productData.productFeatured == 1 && productData.category1ID) {
+        await ensureOnlyOneFeaturedProduct(productData.category1ID)
+    }
+
+    try {
+        const results = await executeQuery(queryString, [
+            productData.productName,
+            productData.productDescription,
+            productData.productPrice,
+            productData.productCode,
+            productData.productHidden,
+            productData.productSpecial,
+            productData.productSpecialPrice,
+            productData.productStockStatus,
+            productData.productImage0,
+            productData.productImage1,
+            productData.productImage2,
+            productData.productImage3,
+            productData.productFileName || '',
+            productData.category1ID,
+            productData.category2ID,
+            productData.category3ID,
+            productData.productFeatured || 0,
+        ])
+        return results[0]
+    } catch (error) {
+        console.error('Database error in addProduct:', error)
         throw error
     }
 }

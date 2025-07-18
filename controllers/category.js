@@ -2,6 +2,7 @@
 import {
     getCategory1,
     getAllCategories,
+    getAllCategoriesAdmin,
     renameCategory,
     createCategory,
     deleteCategory,
@@ -9,13 +10,27 @@ import {
 
 import { generateProductImageUrls } from '../utils/file.js'
 
-// Get all the categories
+// Get all the categories with available products
 export const getAllCategoriesController = async (req, res) => {
     try {
         const results = await getAllCategories()
         res.json(transformCategories(results)) //restructure the data before returning
     } catch (error) {
         console.error('Error in getAllCategoriesController:', error)
+        res.status(500).json({
+            error: 'Failed to fetch categories',
+            message: error.message,
+        })
+    }
+}
+
+// Get all categories for admin view
+export const getAllCategoriesAdminController = async (req, res) => {
+    try {
+        const results = await getAllCategoriesAdmin()
+        res.json(transformCategories(results)) //restructure the data before returning
+    } catch (error) {
+        console.error('Error in getAllCategoriesAdminController:', error)
         res.status(500).json({
             error: 'Failed to fetch categories',
             message: error.message,

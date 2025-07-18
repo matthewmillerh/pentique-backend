@@ -1,8 +1,44 @@
 //import db connection
 import db, { executeQuery } from '../config/database.js'
 
-// Get all categories and subcategories
+// Gets all categories that have available products
 export const getAllCategories = async () => {
+    const queryString = `
+        SELECT DISTINCT
+            c1.category1Name, 
+            c2.category2Name, 
+            c3.category3Name, 
+            c1.category1ID, 
+            c2.category2ID, 
+            c3.category3ID
+        FROM 
+            category1 c1
+        LEFT JOIN 
+            category2 c2 ON c2.category1ID = c1.category1ID
+        LEFT JOIN 
+            category3 c3 ON c3.category2ID = c2.category2ID
+        INNER JOIN 
+            product p ON (
+                p.category1ID = c1.category1ID OR 
+                p.category2ID = c2.category2ID OR 
+                p.category3ID = c3.category3ID
+            )
+        WHERE 
+            p.productHidden = 0
+        ORDER BY 
+            c1.category1Name ASC, c2.category2Name ASC, c3.category3Name ASC
+    `
+    try {
+        const results = await executeQuery(queryString)
+        return results[0]
+    } catch (error) {
+        console.error('Database error in getProductsByCategory:', error)
+        throw error
+    }
+}
+
+// Gets all categories and subcategories for admin view
+export const getAllCategoriesAdmin = async () => {
     const queryString = `
         SELECT 
             c1.category1Name, 
@@ -17,6 +53,8 @@ export const getAllCategories = async () => {
             category2 c2 ON c2.category1ID = c1.category1ID
         LEFT JOIN 
             category3 c3 ON c3.category2ID = c2.category2ID
+        ORDER BY 
+            c1.category1Name ASC, c2.category2Name ASC, c3.category3Name ASC
     `
     try {
         const results = await executeQuery(queryString)
@@ -35,7 +73,8 @@ export const getCategory1 = async () => {
         LEFT OUTER JOIN category1 ON category1.category1ID = product.category1ID 
         LEFT OUTER JOIN category2 ON category2.category2ID = product.category2ID 
         LEFT OUTER JOIN category3 ON category3.category3ID = product.category3ID
-        WHERE product.productFeatured=1
+        WHERE product.productFeatured=1 AND product.productHidden=0
+        ORDER BY category1.category1Name ASC, category2.category2Name ASC, category3.category3Name ASC
     `
     try {
         const results = await executeQuery(queryString)

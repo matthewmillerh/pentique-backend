@@ -6,6 +6,7 @@ import {
     getProductByIdController,
     updateProductByIdController,
     deleteProductByIdController,
+    addProductController,
 } from '../controllers/product.js'
 
 //import category functions
@@ -15,10 +16,11 @@ import {
     renameCategoryController,
     createCategoryController,
     deleteCategoryController,
+    getAllCategoriesAdminController,
 } from '../controllers/category.js'
 
 //import authorization functions
-import { login } from '../controllers/authorization.js'
+import { login, authenticateToken } from '../controllers/authorization.js'
 import multer from 'multer'
 
 //init express router
@@ -42,15 +44,16 @@ router.post('/login', login)
 //
 // Protected routes
 //
-
+// Get all categories for admin view
+router.get('/admin/get-all-categories', authenticateToken, getAllCategoriesAdminController)
 // Rename a product category
-router.put('/categories/rename', renameCategoryController)
+router.put('/categories/rename', authenticateToken, renameCategoryController)
 
 // Create a new category
-router.post('/categories/create', createCategoryController)
+router.post('/categories/create', authenticateToken, createCategoryController)
 
 // Delete a category
-router.delete('/categories/delete', deleteCategoryController)
+router.delete('/categories/delete', authenticateToken, deleteCategoryController)
 
 // Update a product by productID
 // Configure multer for file uploads (store in memory or specify disk storage as needed)
@@ -58,6 +61,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 
 router.put(
     '/products/edit',
+    authenticateToken,
     upload.fields([
         { name: 'productDetails', maxCount: 1 },
         { name: 'image_0', maxCount: 1 },
@@ -69,7 +73,21 @@ router.put(
 )
 
 // Delete a product by productID
-router.delete('/products/delete', deleteProductByIdController)
+router.delete('/products/delete', authenticateToken, deleteProductByIdController)
+
+// Add a new product
+router.post(
+    '/products/add',
+    authenticateToken,
+    upload.fields([
+        { name: 'productDetails', maxCount: 1 },
+        { name: 'image_0', maxCount: 1 },
+        { name: 'image_1', maxCount: 1 },
+        { name: 'image_2', maxCount: 1 },
+        { name: 'image_3', maxCount: 1 },
+    ]),
+    addProductController,
+)
 
 //export default router
 export default router
