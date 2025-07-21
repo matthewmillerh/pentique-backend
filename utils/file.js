@@ -197,6 +197,7 @@ export const generateProductImageUrls = (product, req) => {
 
 // Updates product images by copying them to the appropriate directory
 // Converts all images to JPG format with predictable naming: productID_0.jpg, productID_1.jpg, etc.
+// Creates thumbnails automatically for each new/updated image
 // Updates the database with the new filenames
 export const updateProductImages = async (images, productID) => {
     console.log('updateProductImages called with:', {
@@ -210,6 +211,7 @@ export const updateProductImages = async (images, productID) => {
         productID.toString(), // Use the product ID as the final directory
     )
     const productPath = path.resolve(__dirname, basePath)
+    const thumbsPath = path.join(productPath, 'thumbs')
 
     // Create the product directory if it doesn't exist
     if (!fs.existsSync(productPath)) {
@@ -217,6 +219,17 @@ export const updateProductImages = async (images, productID) => {
             fs.mkdirSync(productPath, { recursive: true })
         } catch (error) {
             console.error(`Failed to create product directory: ${error.message}`)
+            return false
+        }
+    }
+
+    // Create the thumbs directory if it doesn't exist
+    if (!fs.existsSync(thumbsPath)) {
+        try {
+            fs.mkdirSync(thumbsPath, { recursive: true })
+            console.log(`Created thumbs directory: ${thumbsPath}`)
+        } catch (error) {
+            console.error(`Failed to create thumbs directory: ${error.message}`)
             return false
         }
     }
@@ -243,6 +256,7 @@ export const updateProductImages = async (images, productID) => {
             // Predictable filename: productID_0.jpg, productID_1.jpg, etc.
             let fileName = `${productID}_${i}.jpg`
             const destPath = path.join(productPath, fileName)
+            const thumbPath = path.join(thumbsPath, fileName)
 
             try {
                 if (file.buffer && Buffer.isBuffer(file.buffer)) {
@@ -257,6 +271,28 @@ export const updateProductImages = async (images, productID) => {
                     fs.writeFileSync(destPath, jpegBuffer)
                     savedFilenames[i] = fileName
                     console.log(`Saved and converted: ${fileName}`)
+
+                    // Create thumbnail automatically
+                    try {
+                        await sharp(jpegBuffer)
+                            .resize(200, null, {
+                                withoutEnlargement: true,
+                                fit: 'inside',
+                            })
+                            .jpeg({
+                                quality: 80,
+                                progressive: true,
+                                mozjpeg: true,
+                            })
+                            .toFile(thumbPath)
+
+                        console.log(`Created thumbnail: ${fileName}`)
+                    } catch (thumbError) {
+                        console.error(
+                            `Failed to create thumbnail for ${fileName}:`,
+                            thumbError.message,
+                        )
+                    }
                 } else {
                     console.error(`File object missing valid buffer for ${fileName}:`, {
                         hasBuffer: !!file.buffer,
