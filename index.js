@@ -8,6 +8,7 @@ import { log, logError, logInfo } from './logger.js'
 // Test logging immediately
 logInfo('=== SERVER STARTING ===')
 logInfo(`Node version: ${process.version}`)
+logInfo(`Environment: ${process.env.NODE_ENV || 'none'}`)
 logInfo(`Current working directory: ${process.cwd()}`)
 logInfo(`__dirname equivalent: ${path.dirname(new URL(import.meta.url).pathname)}`)
 

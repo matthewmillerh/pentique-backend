@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
+import readline from 'readline'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -14,6 +15,34 @@ const THUMBNAIL_CONFIG = {
     stripMetadata: true, // Remove EXIF data to reduce file size
 }
 
+// Function to prompt user for overwrite choice
+const promptUser = () => {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    })
+
+    return new Promise(resolve => {
+        console.log('\n📋 Choose an option:')
+        console.log('  1. Skip files that already have thumbnails (faster)')
+        console.log('  2. Overwrite all thumbnails (regenerate everything)')
+        console.log('')
+
+        rl.question('Enter your choice (1 or 2): ', answer => {
+            rl.close()
+            const choice = answer.trim()
+            if (choice === '1') {
+                resolve('skip')
+            } else if (choice === '2') {
+                resolve('overwrite')
+            } else {
+                console.log('❌ Invalid choice. Defaulting to skip existing files.')
+                resolve('skip')
+            }
+        })
+    })
+}
+
 const createThumbnails = async () => {
     const productsDir = path.join(__dirname, 'images', 'products')
 
@@ -24,6 +53,14 @@ const createThumbnails = async () => {
         console.error('❌ Products directory does not exist:', productsDir)
         return
     }
+
+    // Get user choice for handling existing thumbnails
+    const mode = await promptUser()
+    const overwriteAll = mode === 'overwrite'
+
+    console.log(
+        `\n⚙️  Mode: ${overwriteAll ? 'Overwriting all thumbnails' : 'Skipping existing thumbnails'}`,
+    )
 
     let totalProcessed = 0
     let totalSkipped = 0
@@ -69,8 +106,17 @@ const createThumbnails = async () => {
                 const thumbnailPath = path.join(thumbsPath, imageFile)
 
                 try {
-                    // Force regeneration with new quality setting - skip timestamp check
-                    console.log(`  🔄 Regenerating ${imageFile} with 80% quality...`)
+                    // Check if thumbnail already exists and user chose to skip
+                    if (!overwriteAll && fs.existsSync(thumbnailPath)) {
+                        console.log(`  ⏭️  Skipping ${imageFile} (thumbnail exists)`)
+                        totalSkipped++
+                        continue
+                    }
+
+                    const action = overwriteAll ? 'Regenerating' : 'Creating'
+                    console.log(
+                        `  🔄 ${action} ${imageFile} with ${THUMBNAIL_CONFIG.quality}% quality...`,
+                    )
 
                     // Generate thumbnail
                     await sharp(sourcePath)
