@@ -89,7 +89,7 @@ describe('bulk product changes (dev database)', () => {
         })
         const hidden = await scratchProduct('__test products zyxqwe hidden', { productHidden: 1 })
 
-        const ids = (await searchProducts(['zyxqwe'], 'zyxqwe', 50)).map(p => p.productID)
+        const ids = (await searchProducts(['zyxqwe'], 'zyxqwe')).map(p => p.productID)
 
         assert.ok(ids.includes(byName) && ids.includes(byDescription))
         assert.ok(!ids.includes(hidden))
@@ -101,7 +101,7 @@ describe('bulk product changes (dev database)', () => {
         const both = await scratchProduct('__test products Qwvbn Porsche', { productDescription: 'red kxjwq model' })
         const one = await scratchProduct('__test products Qwvbn Ferrari', { productDescription: 'blue model' })
 
-        const ids = (await searchProducts(['qwvbn', 'kxjwq'], 'qwvbn kxjwq', 50)).map(p => p.productID)
+        const ids = (await searchProducts(['qwvbn', 'kxjwq'], 'qwvbn kxjwq')).map(p => p.productID)
 
         assert.ok(ids.includes(both))
         assert.ok(!ids.includes(one))
@@ -114,11 +114,11 @@ describe('bulk product changes (dev database)', () => {
         const inSeries = await scratchProduct('__test products 1971 Datsun', { categoryID: series })
         const elsewhere = await scratchProduct('__test products 1971 Datsun other')
 
-        const byBrand = (await searchProducts(['vrmqz'], 'vrmqz', 50)).map(p => p.productID)
+        const byBrand = (await searchProducts(['vrmqz'], 'vrmqz')).map(p => p.productID)
         assert.deepEqual(byBrand, [inSeries])
 
         // words can be spread over the product name and its categories
-        const mixed = (await searchProducts(['datsun', 'wkplo'], 'datsun wkplo', 50)).map(p => p.productID)
+        const mixed = (await searchProducts(['datsun', 'wkplo'], 'datsun wkplo')).map(p => p.productID)
         assert.deepEqual(mixed, [inSeries])
         assert.ok(!mixed.includes(elsewhere))
     })
@@ -131,7 +131,7 @@ describe('bulk product changes (dev database)', () => {
         })
         const bag = await scratchProduct('__test products Z large bag', { categoryID: bags })
 
-        const ids = (await searchProducts(['plirv', 'bags'], 'plirv bags', 50)).map(p => p.productID)
+        const ids = (await searchProducts(['plirv', 'bags'], 'plirv bags')).map(p => p.productID)
         assert.deepEqual(ids, [bag, mention])
     })
 
@@ -139,9 +139,9 @@ describe('bulk product changes (dev database)', () => {
         await scratchProduct('__test products html', { productDescription: 'line one<br/>line two' })
         const percent = await scratchProduct('__test products 50%_off pqzmw')
 
-        assert.equal((await searchProducts(['<br/>'], '<br/>', 50)).length, 0)
-        assert.equal((await searchProducts(['%'], '%', 50)).length, 1)
-        assert.deepEqual((await searchProducts(['50%_off'], '50%_off', 50)).map(p => p.productID), [percent])
+        assert.equal((await searchProducts(['<br/>'], '<br/>')).length, 0)
+        assert.equal((await searchProducts(['%'], '%')).length, 1)
+        assert.deepEqual((await searchProducts(['50%_off'], '50%_off')).map(p => p.productID), [percent])
     })
 
     test('deletes several products and reports which ones existed', async () => {
