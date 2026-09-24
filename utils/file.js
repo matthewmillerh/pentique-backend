@@ -234,8 +234,9 @@ export const updateProductImages = async (images, productID) => {
         }
     }
 
-    // Track which filenames were successfully saved
+    // Track which filenames were successfully saved, and whether any uploaded file could not be processed
     const savedFilenames = ['', '', '', '']
+    let failedUpload = false
 
     // Process images with predictable naming and convert to JPG
     for (let i = 0; i < 4; i++) {
@@ -294,6 +295,7 @@ export const updateProductImages = async (images, productID) => {
                         )
                     }
                 } else {
+                    failedUpload = true
                     console.error(`File object missing valid buffer for ${fileName}:`, {
                         hasBuffer: !!file.buffer,
                         bufferType: typeof file.buffer,
@@ -302,6 +304,7 @@ export const updateProductImages = async (images, productID) => {
                     })
                 }
             } catch (err) {
+                failedUpload = true
                 console.error(
                     `Failed to process image ${file.originalname || 'unknown'}: ${err.message}`,
                 )
@@ -309,34 +312,30 @@ export const updateProductImages = async (images, productID) => {
         }
     }
 
-    // Update database with the saved filenames
+    // Update database with the saved filenames. Only the slots that were uploaded are changed, the other
+    // images of the product must be left alone (blanking them would get their files deleted as orphans)
+    const savedSlots = [0, 1, 2, 3].filter(i => savedFilenames[i])
+    if (savedSlots.length === 0) {
+        return !failedUpload
+    }
+
     try {
         const { executeQuery } = await import('../config/database.js')
         const updateQuery = `
             UPDATE product 
-            SET 
-                productImage0 = ?,
-                productImage1 = ?,
-                productImage2 = ?,
-                productImage3 = ?
+            SET ${savedSlots.map(i => `productImage${i} = ?`).join(', ')}
             WHERE productID = ?
         `
 
-        await executeQuery(updateQuery, [
-            savedFilenames[0],
-            savedFilenames[1],
-            savedFilenames[2],
-            savedFilenames[3],
-            productID,
-        ])
+        await executeQuery(updateQuery, [...savedSlots.map(i => savedFilenames[i]), productID])
 
-        console.log(`Updated database with filenames: ${savedFilenames.join(', ')}`)
+        console.log(`Updated database with filenames: ${savedSlots.map(i => savedFilenames[i]).join(', ')}`)
     } catch (error) {
         console.error('Failed to update database with image filenames:', error.message)
         return false
     }
 
-    return true
+    return !failedUpload
 }
 
 // Deletes product images by removing the product directory
