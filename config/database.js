@@ -85,8 +85,8 @@ db.on('error', err => {
     }
 })
 
-// Periodic health check (every 5 minutes)
-setInterval(testConnection, 5 * 60 * 1000)
+// Periodic health check (every 5 minutes), unref'd so scripts and tests can exit once they are done
+setInterval(testConnection, 5 * 60 * 1000).unref()
 
 // Initial connection test
 testConnection()
