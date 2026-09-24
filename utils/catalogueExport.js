@@ -37,7 +37,7 @@ const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } })
 const thinRule = { style: 'thin', color: { argb: COLOURS.rule } }
 
 // Descriptions are stored as HTML fragments (mostly <br/>): make them plain text with real line breaks
-const plainText = html =>
+export const plainText = html =>
     String(html || '')
         .replace(/<br\s*\/?\s*>?/gi, '\n') // also a <br/ with its > missing, which some descriptions have
         .replace(/<\/p>/gi, '\n')
@@ -56,7 +56,7 @@ const plainText = html =>
 
 // The product's images that exist on disk, without changing anything (unlike generateProductImageUrls, which also
 // tidies up files). Images are stored as <id>_<slot>.jpg, older products may still use the name in the database.
-const productImages = (product, imagesUrl) => {
+export const productImages = (product, imagesUrl) => {
     const found = []
     for (let slot = 0; slot < 4; slot++) {
         const dbName = product[`productImage${slot}`]
@@ -72,7 +72,7 @@ const productImages = (product, imagesUrl) => {
 }
 
 // What one unit sells for right now
-const sellingPrice = product =>
+export const sellingPrice = product =>
     product.productSpecial && Number(product.productSpecialPrice) > 0
         ? Number(product.productSpecialPrice)
         : Number(product.productPrice)

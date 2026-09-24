@@ -28,6 +28,8 @@ import {
 
 //import the catalogue export
 import { exportCatalogueController } from '../controllers/export.js'
+//import the catalogue stats
+import { catalogueStatsController } from '../controllers/stats.js'
 
 //import authorization functions
 import { login, authenticateToken } from '../controllers/authorization.js'
@@ -65,6 +67,9 @@ router.get('/admin/get-all-categories', authenticateToken, getAllCategoriesAdmin
 
 // Download the whole product catalogue as an Excel workbook
 router.get('/admin/export/catalogue', authenticateToken, exportCatalogueController)
+
+// Figures about the catalogue for the admin Stats page
+router.get('/admin/stats', authenticateToken, catalogueStatsController)
 // Rename a product category
 router.put('/categories/rename', authenticateToken, renameCategoryController)
 
