@@ -354,8 +354,7 @@ export const bulkDeleteProductsController = async (req, res) => {
     }
 }
 
-// Search the store: products whose name, description or category names contain every word of the search
-const SEARCH_LIMIT = 60
+// Search the store: every product whose name, description or category names contain every word of the search
 export const searchProductsController = async (req, res) => {
     const phrase = typeof req.query.q === 'string' ? req.query.q.trim().replace(/\s+/g, ' ').slice(0, 100) : ''
     if (phrase.length < 2) {
@@ -364,15 +363,12 @@ export const searchProductsController = async (req, res) => {
     const words = [...new Set(phrase.toLowerCase().split(' '))].slice(0, 8)
 
     try {
-        // one extra, to know whether there were more results than are shown
-        const products = await searchProducts(words, phrase, SEARCH_LIMIT + 1)
-        const more = products.length > SEARCH_LIMIT
-        const shown = products.slice(0, SEARCH_LIMIT)
-        shown.forEach(product => {
+        const products = await searchProducts(words, phrase)
+        products.forEach(product => {
             product.imageUrls = generateProductImageUrls(product, req)
             product.productStockStatus = stockStatus(product.productStock)
         })
-        res.json({ query: phrase, products: shown, more })
+        res.json({ query: phrase, products })
     } catch (error) {
         console.error('Error in searchProductsController:', error)
         res.status(500).json({ message: 'Search is not available right now, please try again.' })

@@ -277,9 +277,8 @@ export const deleteProducts = async productIDs => {
 // Search the visible products: every word has to appear in the name, the description (ignoring the HTML in
 // descriptions) or the name of the product's category or one of the categories above it, e.g. "hot wheels" finds the
 // products in "Hot Wheels - Silver Series". Products with the whole search in their name come first, then those in a
-// category named after the whole search.
-// Returns at most `limit` products.
-export const searchProducts = async (words, phrase, limit) => {
+// category named after the whole search. Returns every match.
+export const searchProducts = async (words, phrase) => {
     // Treat % _ and \ as normal characters instead of LIKE wildcards
     const like = text => `%${text.replace(/[\\%_]/g, char => `\\${char}`)}%`
     const description = "REGEXP_REPLACE(IFNULL(p.productDescription, ''), '<[^>]*>', ' ')"
@@ -323,7 +322,6 @@ export const searchProducts = async (words, phrase, limit) => {
         WHERE p.productHidden = 0
             ${words.map((word, i) => wordCondition(i)).join('\n            ')}
         ORDER BY (p.productName LIKE ?) DESC, (p.categoryID IN (?)) DESC, p.productName ASC
-        LIMIT ?
     `
 
     try {
@@ -335,7 +333,6 @@ export const searchProducts = async (words, phrase, limit) => {
             ),
             like(phrase),
             phraseCategoryIDs,
-            limit,
         ])
         return results[0]
     } catch (error) {
