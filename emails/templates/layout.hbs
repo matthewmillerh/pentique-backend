@@ -24,6 +24,10 @@
       .thumb img { width: 42px !important; height: 42px !important; }
       .stack { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
       .label-cell { padding-bottom: 0 !important; }
+      /* the order reference box: the date goes under the reference instead of squeezing it */
+      .ref-cell { display: block !important; width: auto !important; text-align: left !important; }
+      .ref-cell + .ref-cell { padding-top: 0 !important; }
+      .ref-number { font-size: 18px !important; white-space: nowrap; }
     }
   </style>
 </head>
