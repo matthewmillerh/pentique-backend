@@ -9,12 +9,12 @@ import {
     customerOrderData,
     newOrderReference,
     shopOrderData,
+    thumbAttachments,
 } from '../utils/orders.js'
 
 const dir = path.resolve(process.env.EMAIL_PREVIEW_DIR || 'email-previews')
 fs.mkdirSync(dir, { recursive: true })
 
-const imagesUrl = `http://localhost:${process.env.PORT || 5000}/images`
 const products = [
     { productID: 84, productName: 'Hot Wheels Tooned Twin Mill', productCode: 'HW1042', productPrice: 79.95, productSpecial: 0, productSpecialPrice: 0, productStock: 6 },
     { productID: 86, productName: 'Majorette Porsche 911 GT3 RS in a Presentation Box', productCode: 'MJ2231', productPrice: 145, productSpecial: 1, productSpecialPrice: 119, productStock: 1 },
@@ -33,26 +33,34 @@ const order = {
     ],
 }
 
-const write = (name, subject, { html, text }) => {
+// (the pictures that would travel inside the email are put into the file)
+const write = (name, subject, { html, text }, attachments = []) => {
     const file = path.join(dir, `${name}.html`)
-    fs.writeFileSync(file, `<!-- ${subject} -->\n` + html.replaceAll(`cid:${LOGO_CID}`, logoDataUri()))
-    fs.writeFileSync(path.join(dir, `${name}.txt`), `Subject: ${subject}\n\n${text}`)
+    let page = html.replaceAll(`cid:${LOGO_CID}`, logoDataUri())
+    for (const { cid, path: picture } of attachments) {
+        page = page.replaceAll(`cid:${cid}`, `data:image/jpeg;base64,${fs.readFileSync(picture).toString('base64')}`)
+    }
+    fs.writeFileSync(file, `<!-- ${subject} -->
+` + page)
+    fs.writeFileSync(path.join(dir, `${name}.txt`), `Subject: ${subject}
+
+${text}`)
     console.log(file)
 }
 
-const data = buildOrderEmailData(order, products, { ref: newOrderReference(), imagesUrl })
+const data = buildOrderEmailData(order, products, { ref: newOrderReference() })
 const shop = shopOrderData(data)
 const customer = customerOrderData(data)
-write('order-shop', shop.subject, renderEmail('order-shop', shop))
-write('order-customer', customer.subject, renderEmail('order-customer', customer))
+write('order-shop', shop.subject, renderEmail('order-shop', shop), thumbAttachments(shop))
+write('order-customer', customer.subject, renderEmail('order-customer', customer), thumbAttachments(customer))
 
 const collect = buildOrderEmailData(
     { ...order, delivery: { method: 'collect' }, note: '', items: [order.items[0]] },
     products,
-    { ref: newOrderReference(), imagesUrl },
+    { ref: newOrderReference() },
 )
 const collectData = customerOrderData(collect)
-write('order-customer-collect', collectData.subject, renderEmail('order-customer', collectData))
+write('order-customer-collect', collectData.subject, renderEmail('order-customer', collectData), thumbAttachments(collectData))
 
 const contact = contactEmailData({
     name: 'Thabo Nkosi',

@@ -8,13 +8,12 @@ import {
     isSpam,
     newOrderReference,
     shopOrderData,
+    thumbAttachments,
     validateContact,
     validateOrder,
 } from '../utils/orders.js'
 
 const NOT_SENT_MESSAGE = 'Your message could not be sent right now. Please try again in a little while.'
-
-const imagesUrlFor = req => `${process.env.HTTP_PROTOCOL || req.protocol}://${req.get('host')}/images`
 
 // Place an order: the shop gets the order, and the customer gets a confirmation
 export const placeOrderController = async (req, res) => {
@@ -38,7 +37,7 @@ export const placeOrderController = async (req, res) => {
 
         const now = new Date()
         const ref = newOrderReference(now)
-        const data = buildOrderEmailData(order, products, { ref, now, imagesUrl: imagesUrlFor(req) })
+        const data = buildOrderEmailData(order, products, { ref, now })
 
         // the order itself: without this email the shop would never see it, so a failure is reported to the customer
         const toShop = shopEmail()
@@ -48,6 +47,7 @@ export const placeOrderController = async (req, res) => {
             to: toShop,
             replyTo: order.email,
             subject: shopData.subject,
+            attachments: thumbAttachments(shopData),
             ...renderEmail('order-shop', shopData),
         })
 
@@ -59,6 +59,7 @@ export const placeOrderController = async (req, res) => {
                 to: order.email,
                 replyTo: toShop,
                 subject: customerData.subject,
+                attachments: thumbAttachments(customerData),
                 ...renderEmail('order-customer', customerData),
             })
         } catch (error) {

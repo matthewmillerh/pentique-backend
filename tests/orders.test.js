@@ -18,6 +18,7 @@ import {
     customerOrderData,
     newOrderReference,
     shopOrderData,
+    thumbAttachments,
     validateContact,
     validateOrder,
 } from '../utils/orders.js'
@@ -111,8 +112,8 @@ const order = (fields = {}) => ({
     items: [{ productID: 1, quantity: 3 }, { productID: 2, quantity: 2 }, { productID: 3, quantity: 1 }],
     ...fields,
 })
-const emailData = (fields, imagesUrl = 'http://localhost:5000/images') =>
-    buildOrderEmailData(order(fields), products, { ref: 'PQ-TEST', now: new Date('2026-09-26T10:00:00Z'), imagesUrl })
+const emailData = fields =>
+    buildOrderEmailData(order(fields), products, { ref: 'PQ-TEST', now: new Date('2026-09-26T10:00:00Z') })
 
 describe('order emails', () => {
     test('prices and totals come from the products, with the special price while on special', () => {
@@ -176,6 +177,29 @@ describe('order emails', () => {
                 assert.match(output, /512,35/)
             }
         }
+    })
+
+    test('product pictures travel inside the email, once each, and products without one show no picture', () => {
+        // the pictures of the products in the dev images folder (there are none for the made up products above)
+        const productsDir = path.resolve('images/products')
+        const withPicture = fs.readdirSync(productsDir).filter(id => fs.existsSync(path.join(productsDir, id, `thumbs/${id}_0.jpg`))).slice(0, 2).map(Number)
+        assert.equal(withPicture.length, 2, 'the dev images folder has no product pictures')
+
+        const real = withPicture.map(productID => ({ ...products[0], productID }))
+        const data = buildOrderEmailData(
+            { ...order(), items: [{ productID: withPicture[0], quantity: 1 }, { productID: withPicture[1], quantity: 2 }] },
+            real,
+            { ref: 'PQ-TEST' },
+        )
+        assert.deepEqual(data.items.map(item => item.thumbUrl), withPicture.map(id => `cid:product-${id}`))
+        assert.deepEqual(thumbAttachments(data).map(a => a.cid), withPicture.map(id => `product-${id}`))
+        assert.ok(thumbAttachments(data).every(a => fs.existsSync(a.path) && a.path.includes('thumbs')))
+        assert.match(renderEmail('order-customer', customerOrderData(data)).html, new RegExp(`<img src="cid:product-${withPicture[0]}"`))
+
+        // the made up products have no pictures: nothing to attach, and no broken image in the email
+        const none = emailData()
+        assert.deepEqual(thumbAttachments(none), [])
+        assert.doesNotMatch(renderEmail('order-shop', shopOrderData(none)).html, /<img src="(?!cid:pentique-logo)/)
     })
 
     test('the logo is referenced from the email and the address of the shop is in the footer', () => {

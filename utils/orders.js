@@ -122,15 +122,19 @@ export const newOrderReference = (now = new Date()) => {
 const formatDateTime = date =>
     date.toLocaleString('en-ZA', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Johannesburg' })
 
-// The small picture beside a product: its thumbnail, else its first image, else none (read only, nothing is changed)
-const thumbUrl = (productID, imagesUrl) => {
+// The small picture beside a product: its thumbnail, else its first image (read only, nothing is changed).
+// Returns the file, or '' when the product has no picture.
+const thumbFile = productID => {
     for (const relative of [`thumbs/${productID}_0.jpg`, `${productID}_0.jpg`]) {
-        if (fs.existsSync(path.join(PRODUCTS_DIR, String(productID), relative))) {
-            return `${imagesUrl}/products/${productID}/${relative}`
-        }
+        const file = path.join(PRODUCTS_DIR, String(productID), relative)
+        if (fs.existsSync(file)) return file
     }
     return ''
 }
+
+// The pictures travel inside the email (like the logo) instead of being loaded from the website: mail apps such as
+// Gmail hide pictures that have to be fetched until the reader allows them, especially from a new sender.
+const thumbCid = productID => `product-${productID}`
 
 const deliveryDetails = delivery => {
     const priceNote = 'The price is worked out after the order is placed.'
@@ -160,7 +164,7 @@ const deliveryDetails = delivery => {
  * @param {object[]} products the products of the order as they are in the database
  * @returns {object}
  */
-export const buildOrderEmailData = (order, products, { ref, now = new Date(), imagesUrl }) => {
+export const buildOrderEmailData = (order, products, { ref, now = new Date() }) => {
     const byID = new Map(products.map(product => [product.productID, product]))
     let totalCents = 0
     let itemCount = 0
@@ -174,6 +178,7 @@ export const buildOrderEmailData = (order, products, { ref, now = new Date(), im
 
         const stock = Number(product.productStock) || 0
         const onSpecial = price !== Number(product.productPrice)
+        const file = thumbFile(productID)
         return {
             name: product.productName,
             code: (product.productCode || '').trim(),
@@ -182,7 +187,8 @@ export const buildOrderEmailData = (order, products, { ref, now = new Date(), im
             onSpecial,
             wasFormatted: onSpecial ? formatMoney(Number(product.productPrice)) : '',
             lineTotalFormatted: formatMoney(lineCents / 100),
-            thumbUrl: thumbUrl(productID, imagesUrl),
+            thumbUrl: file ? `cid:${thumbCid(productID)}` : '',
+            thumbFile: file,
             stockWarning: stock <= 0 ? 'Out of stock' : quantity > stock ? `Only ${stock} in stock` : '',
         }
     })
@@ -206,6 +212,14 @@ export const buildOrderEmailData = (order, products, { ref, now = new Date(), im
         shippingNote: order.delivery.method === 'collect' ? '' : 'Shipping is not included in this total.',
     }
 }
+
+// The pictures of an order's products, to attach to the email so its cid:product-... images show
+export const thumbAttachments = data =>
+    [...new Map(data.items.filter(item => item.thumbFile).map(item => [item.thumbUrl, item])).values()].map(item => ({
+        filename: path.basename(item.thumbFile),
+        path: item.thumbFile,
+        cid: item.thumbUrl.slice('cid:'.length),
+    }))
 
 // What the email to the shop shows: the order with its subject line, and the stock warnings only the shop needs
 export const shopOrderData = data => ({
