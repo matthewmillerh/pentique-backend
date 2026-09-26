@@ -4,11 +4,12 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "test": "node --test tests/category.test.js tests/products.test.js tests/catalogueExport.test.js tests/catalogueStats.test.js",
+        "test": "node --test tests/category.test.js tests/products.test.js tests/catalogueExport.test.js tests/catalogueStats.test.js tests/orders.test.js",
         "migrate": "node migrations/run.js",
         "start": "node index.js",
         "start-dev": "powershell -Command \"$env:NODE_ENV='development'; nodemon index.js\"",
-        "start-prod": "powershell -Command \"$env:NODE_ENV='production'; nodemon index.js\""
+        "start-prod": "powershell -Command \"$env:NODE_ENV='production'; nodemon index.js\"",
+        "email:preview": "node emails/preview.js"
     },
     "keywords": [],
     "author": "",
@@ -20,9 +21,11 @@
         "dotenv": "^16.4.7",
         "exceljs": "^4.4.0",
         "express": "^4.21.0",
+        "handlebars": "^4.7.9",
         "jsonwebtoken": "^9.0.2",
         "multer": "^2.0.1",
         "mysql2": "^3.11.3",
+        "nodemailer": "^10.0.10",
         "nodemon": "^3.1.7",
         "sharp": "^0.34.3"
     },

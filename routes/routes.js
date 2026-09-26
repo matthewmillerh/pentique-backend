@@ -31,12 +31,34 @@ import { exportCatalogueController } from '../controllers/export.js'
 //import the catalogue stats
 import { catalogueStatsController } from '../controllers/stats.js'
 
+//import the order and contact form emails
+import { placeOrderController, sendContactController } from '../controllers/orders.js'
+import { rateLimit } from '../utils/rateLimit.js'
+
 //import authorization functions
 import { login, authenticateToken } from '../controllers/authorization.js'
 import multer from 'multer'
 
 //init express router
 const router = express.Router()
+
+// The forms anyone can send (checkout, contact). A visitor can send a handful every quarter of an hour.
+const orderLimit = rateLimit({
+    max: 15,
+    windowMs: 15 * 60 * 1000,
+    message: 'You have placed a lot of orders in a short time. Please wait a few minutes and try again.',
+})
+const contactLimit = rateLimit({
+    max: 5,
+    windowMs: 15 * 60 * 1000,
+    message: 'You have sent a lot of messages in a short time. Please wait a few minutes and try again.',
+})
+
+// Place an order (emails the shop and the customer)
+router.post('/orders', orderLimit, placeOrderController)
+
+// Send the contact form (emails the shop)
+router.post('/contact', contactLimit, sendContactController)
 
 //get the products in a category and all of its subcategories
 router.get('/products-by-category/:categoryID', getProductsByCategoryController)

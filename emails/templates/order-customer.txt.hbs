@@ -1,0 +1,41 @@
+Thank you for your order, {{firstName}}!
+
+We have received your order and will start putting it together.
+
+Order reference: {{ref}}
+Placed: {{placedAt}}
+
+YOUR ORDER
+{{#each items}}
+- {{name}}: {{qty}} x {{priceFormatted}} = {{lineTotalFormatted}}{{#if onSpecial}} (on special, was {{wasFormatted}}){{/if}}
+{{/each}}
+
+Total: {{totalFormatted}}
+{{#if shippingNote}}
+{{shippingNote}}
+{{/if}}
+
+DELIVERY
+{{delivery.title}}
+{{#each delivery.details}}
+{{this}}
+{{/each}}
+{{#if delivery.note}}
+({{delivery.note}})
+{{/if}}
+{{#if note}}
+
+YOUR NOTE
+{{note}}
+{{/if}}
+
+WHAT HAPPENS NEXT
+We will process your order and, if it is being delivered, work out the shipping cost. You will then receive an email with your invoice and the payment instructions.
+
+Reply to this email if you have any questions about your order.
+
+Thank you for shopping with us,
+The Pentique team
+
+Pentique, 19 Rand Street, Durbanville, 7550
+https://pentique.co.za

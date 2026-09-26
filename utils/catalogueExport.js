@@ -7,6 +7,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import ExcelJS from 'exceljs'
 import { buildTree, categoryPath } from '../models/categoryModel.js'
+import { sellingPrice } from './pricing.js'
 
 const PRODUCTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../images/products')
 
@@ -72,10 +73,7 @@ export const productImages = (product, imagesUrl) => {
 }
 
 // What one unit sells for right now
-export const sellingPrice = product =>
-    product.productSpecial && Number(product.productSpecialPrice) > 0
-        ? Number(product.productSpecialPrice)
-        : Number(product.productPrice)
+export { sellingPrice }
 
 const exportedAt = date =>
     new Intl.DateTimeFormat('en-ZA', {
