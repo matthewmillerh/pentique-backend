@@ -1,0 +1,40 @@
+{{#> layout title=subject preheader=preheader footerNote="Reply to this email if you have any questions about your order."}}
+  <h1 style="margin: 0 0 12px 0; font-size: 26px; line-height: 1.25; color: #1f2937;">Thank you for your order, {{firstName}}!</h1>
+  <p style="margin: 0 0 24px 0;">We have received your order and will start putting it together.</p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0; background-color: #eaf1f8; border-radius: 10px;">
+    <tr>
+      <td class="ref-cell" style="padding: 14px 18px; font-size: 14px; color: #6b7280;">
+        Order reference<br>
+        <strong class="ref-number" style="font-size: 20px; letter-spacing: 0.02em; color: #1f2937;">{{ref}}</strong>
+      </td>
+      <td class="ref-cell" align="right" valign="bottom" style="padding: 14px 18px; font-size: 14px; color: #6b7280;">{{placedAt}}</td>
+    </tr>
+  </table>
+
+  <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280;">Your order</p>
+  {{> items}}
+
+  <p style="margin: 32px 0 8px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280;">Delivery</p>
+  <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6;">
+    <strong>{{delivery.title}}</strong>
+    {{#each delivery.details}}<br>{{this}}{{/each}}
+    {{#if delivery.note}}<br><span style="color: #6b7280; font-size: 14px;">{{delivery.note}}</span>{{/if}}
+  </p>
+
+  {{#if note}}
+  <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280;">Your note</p>
+  <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4b5563;">{{multiline note}}</p>
+  {{/if}}
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 8px 0 0 0;">
+    <tr>
+      <td style="padding: 16px 18px; background-color: #fff7e0; border-radius: 10px; font-size: 15px; line-height: 1.6; color: #1f2937;">
+        <strong>What happens next</strong><br>
+        We will process your order and, if it is being delivered, work out the shipping cost. You will then receive an email with your invoice and the payment instructions.
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin: 28px 0 0 0;">Thank you for shopping with us,<br><strong>The Pentique team</strong></p>
+{{/layout}}

@@ -1,0 +1,29 @@
+{{#> layout title=subject preheader=preheader footerNote="This email was sent from the contact form on the Pentique website. Reply to it to write back to the sender."}}
+  <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #b83280;">Contact form</p>
+  <h1 style="margin: 0 0 6px 0; font-size: 26px; line-height: 1.25; color: #1f2937;">A message from {{name}}</h1>
+  <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280;">{{sentAt}}</p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; background-color: #eaf1f8; border-radius: 10px;">
+    <tr>
+      <td style="padding: 14px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 15px; line-height: 1.5;">
+          <tr>
+            <td class="stack label-cell" width="90" valign="top" style="padding: 4px 0; color: #6b7280;">Name</td>
+            <td class="stack" valign="top" style="padding: 4px 0; color: #1f2937;">{{name}}</td>
+          </tr>
+          <tr>
+            <td class="stack label-cell" valign="top" style="padding: 4px 0; color: #6b7280;">Email</td>
+            <td class="stack" valign="top" style="padding: 4px 0;"><a href="mailto:{{email}}" style="color: #3e6a93;">{{email}}</a></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280;">Message</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding: 16px 18px; background-color: #faf8fb; border: 1px solid #eee8f1; border-radius: 10px; font-size: 16px; line-height: 1.65; color: #1f2937;">{{multiline message}}</td>
+    </tr>
+  </table>
+{{/layout}}

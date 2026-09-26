@@ -369,3 +369,20 @@ export const getAllProductsForExport = async () => {
         throw error
     }
 }
+
+// The products of an order as they are right now (name, prices, stock), for the order emails
+export const getProductsForOrder = async productIDs => {
+    try {
+        const [rows] = await executeQuery(
+            `SELECT productID, productName, productCode, productPrice, productSpecial, productSpecialPrice,
+                    productStock, productHidden
+             FROM product
+             WHERE productID IN (?)`,
+            [productIDs]
+        )
+        return rows
+    } catch (error) {
+        console.error('Database error in getProductsForOrder:', error)
+        throw error
+    }
+}

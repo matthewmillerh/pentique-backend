@@ -31,3 +31,5 @@ coverage
 *.env*
 
 images/
+# Email previews written when no mail server is configured (development)
+email-previews

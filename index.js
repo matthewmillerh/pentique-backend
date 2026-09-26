@@ -4,6 +4,7 @@ import Router from './routes/routes.js'
 import multer from 'multer'
 import path from 'path'
 import { log, logError, logInfo } from './logger.js'
+import { verifyEmailConfig } from './config/email.js'
 
 // Test logging immediately
 logInfo('=== SERVER STARTING ===')
@@ -27,6 +28,8 @@ const storage = multer.diskStorage({
 
 //init express
 const app = express()
+// behind nginx: use the visitor's address (X-Forwarded-For) rather than the proxy's, e.g. for the form rate limits
+app.set('trust proxy', 1)
 logInfo('Express app initialized')
 
 //use express json
@@ -85,6 +88,7 @@ const PORT = process.env.PORT || 5000
 logInfo(`Starting server on port ${PORT}`)
 app.listen(PORT, () => {
     logInfo(`Server running successfully on port ${PORT}`)
+    verifyEmailConfig()
 }).on('error', err => {
     logError('Server failed to start', err)
 })

@@ -1,0 +1,40 @@
+NEW ORDER {{ref}}
+{{placedAt}}
+{{#if hasStockWarnings}}
+
+CHECK THE STOCK: some of the products ordered are marked below as more than is in stock.
+{{/if}}
+
+CUSTOMER
+Name:  {{name}}
+Email: {{email}}
+Phone: {{tel}}
+
+DELIVERY
+{{delivery.title}}
+{{#each delivery.details}}
+{{this}}
+{{/each}}
+{{#if delivery.note}}
+({{delivery.note}})
+{{/if}}
+{{#if note}}
+
+NOTE FROM THE CUSTOMER
+{{note}}
+{{/if}}
+
+PRODUCTS
+{{#each items}}
+- {{name}}{{#if code}} ({{code}}){{/if}}: {{qty}} x {{priceFormatted}} = {{lineTotalFormatted}}{{#if onSpecial}} [on special, was {{wasFormatted}}]{{/if}}
+{{#if stockWarning}}
+  ! {{stockWarning}}
+{{/if}}
+{{/each}}
+
+TOTAL: {{totalFormatted}} ({{itemCount}} {{#if singleItem}}item{{else}}items{{/if}})
+{{#if shippingNote}}
+{{shippingNote}}
+{{/if}}
+
+Reply to this email to write to the customer.
