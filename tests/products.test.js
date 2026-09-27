@@ -4,7 +4,15 @@ import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import db from '../config/database.js'
 import { createCategory } from '../models/categoryModel.js'
-import { addProduct, getProductById, updateProducts, deleteProducts, searchProducts } from '../models/productModel.js'
+import {
+    addProduct,
+    getProductById,
+    updateProductById,
+    updateProducts,
+    deleteProducts,
+    searchProducts,
+    getNewArrivals,
+} from '../models/productModel.js'
 
 describe('bulk product changes (dev database)', () => {
     let categoryID
@@ -155,5 +163,77 @@ describe('bulk product changes (dev database)', () => {
         assert.equal(await getProductById(a), undefined)
         assert.equal(await getProductById(b), undefined)
         assert.ok(await getProductById(keep))
+    })
+
+    describe('productShownAt (when a product last became visible, for New Arrivals)', () => {
+        // save a product back through updateProductById with just productHidden changed
+        const setHidden = async (id, productHidden) => {
+            const product = await getProductById(id)
+            await updateProductById({ ...product, productHidden })
+            return getProductById(id)
+        }
+
+        test('a product added visible is shown from the start; added hidden, it is not', async () => {
+            const shown = await scratchProduct('__test products shown from add', { productHidden: 0 })
+            const hidden = await scratchProduct('__test products hidden from add', { productHidden: 1 })
+
+            assert.ok((await getProductById(shown)).productShownAt)
+            assert.equal((await getProductById(hidden)).productShownAt, null)
+        })
+
+        test('unhiding a product sets productShownAt; saving it again while still shown leaves it alone', async () => {
+            const id = await scratchProduct('__test products unhide', { productHidden: 1 })
+            assert.equal((await getProductById(id)).productShownAt, null)
+
+            const firstShown = (await setHidden(id, 0)).productShownAt
+            assert.ok(firstShown)
+
+            // re-saving unrelated fields while it is already shown must not bump the date
+            const product = await getProductById(id)
+            await updateProductById({ ...product, productName: '__test products unhide (renamed)' })
+            assert.deepEqual((await getProductById(id)).productShownAt, firstShown)
+
+            // hiding it again does not clear the date (it just stops mattering, since it is filtered out below)
+            await setHidden(id, 1)
+            assert.deepEqual((await getProductById(id)).productShownAt, firstShown)
+        })
+
+        test('bulk showing sets productShownAt only for the ones that were hidden', async () => {
+            const wasHidden = await scratchProduct('__test products bulk unhide', { productHidden: 1 })
+            const alreadyShown = await scratchProduct('__test products bulk already shown', { productHidden: 0 })
+            const before = (await getProductById(alreadyShown)).productShownAt
+
+            await updateProducts([wasHidden, alreadyShown], { productHidden: 0 })
+
+            assert.ok((await getProductById(wasHidden)).productShownAt)
+            assert.deepEqual((await getProductById(alreadyShown)).productShownAt, before)
+        })
+
+        test('New Arrivals lists only visible products shown in the last 7 days, newest first, and respects a limit', async () => {
+            const recent = await scratchProduct('__test products arrival recent', { productHidden: 0 })
+            const older = await scratchProduct('__test products arrival older', { productHidden: 0 })
+            const stale = await scratchProduct('__test products arrival stale', { productHidden: 0 })
+            const hiddenRecent = await scratchProduct('__test products arrival hidden', { productHidden: 1 })
+            await setHidden(hiddenRecent, 0) // shown, but hidden again below - must not appear either way
+            await updateProducts([hiddenRecent], { productHidden: 1 })
+
+            // dates chosen so ordering between them can only be explained by productShownAt, not insertion order
+            await db.query('UPDATE product SET productShownAt = NOW() WHERE productID = ?', [recent])
+            await db.query('UPDATE product SET productShownAt = NOW() - INTERVAL 1 HOUR WHERE productID = ?', [older])
+            await db.query('UPDATE product SET productShownAt = NOW() - INTERVAL 10 DAY WHERE productID = ?', [stale])
+
+            // other test files add their own visible products concurrently against the same dev database, so this
+            // only checks things that hold regardless of what else is in the catalogue at the time: that these
+            // four specific products are (or are not) included, and that "recent" outranks "older"
+            const ids = (await getNewArrivals()).map(p => p.productID)
+            assert.ok(ids.includes(recent))
+            assert.ok(ids.includes(older))
+            assert.ok(!ids.includes(stale)) // outside the 7 day window
+            assert.ok(!ids.includes(hiddenRecent)) // hidden again, regardless of its date
+            assert.ok(ids.indexOf(recent) < ids.indexOf(older)) // newest first
+
+            const limited = await getNewArrivals(1)
+            assert.equal(limited.length, 1) // the limit is respected, whichever product currently ranks first
+        })
     })
 })
