@@ -9,6 +9,7 @@ import {
     updateProducts,
     deleteProducts,
     searchProducts,
+    getNewArrivals,
 } from '../models/productModel.js'
 import { getCategoryIndex, getCategory, subtreeIDs, categoryPath } from '../models/categoryModel.js'
 import {
@@ -355,6 +356,28 @@ export const bulkDeleteProductsController = async (req, res) => {
 }
 
 // Search the store: every product whose name, description or category names contain every word of the search
+// Products shown (made visible) in the last 7 days, newest first. ?limit=N caps the count, for the home page's row;
+// the New Arrivals page calls this without a limit.
+export const newArrivalsController = async (req, res) => {
+    const requestedLimit = Number(req.query.limit)
+    const limit = Number.isInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : null
+
+    try {
+        const products = await getNewArrivals(limit)
+        products.forEach(product => {
+            product.imageUrls = generateProductImageUrls(product, req)
+            product.productStockStatus = stockStatus(product.productStock)
+        })
+        res.json({ products })
+    } catch (error) {
+        console.error('Error in newArrivalsController:', error)
+        res.status(500).json({
+            error: 'Failed to fetch new arrivals',
+            message: error.message,
+        })
+    }
+}
+
 export const searchProductsController = async (req, res) => {
     const phrase = typeof req.query.q === 'string' ? req.query.q.trim().replace(/\s+/g, ' ').slice(0, 100) : ''
     if (phrase.length < 2) {

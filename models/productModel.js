@@ -60,6 +60,46 @@ export const getProductsByCategory = async categoryIDs => {
     }
 }
 
+// Visible products shown in the last 7 days (productShownAt is set whenever a product goes from hidden to shown,
+// see updateProductById/updateProducts/addProduct), newest first. `limit` caps how many come back, for the home
+// page's row; the dedicated New Arrivals page calls this with no limit.
+export const getNewArrivals = async (limit = null) => {
+    const queryString = `
+        SELECT
+            p.productID,
+            p.productName,
+            p.productDescription,
+            p.productPrice,
+            p.productCode,
+            p.productHidden,
+            p.productShownAt,
+            p.productSpecial,
+            p.productSpecialPrice,
+            p.productStock,
+            p.productImage0,
+            p.productImage1,
+            p.productImage2,
+            p.productImage3,
+            p.productFeatured,
+            p.categoryID,
+            c.categoryName
+        FROM product p
+        INNER JOIN category c ON c.categoryID = p.categoryID
+        WHERE p.productHidden = 0
+          AND p.productShownAt >= NOW() - INTERVAL 7 DAY
+        ORDER BY p.productShownAt DESC, p.productID DESC
+        ${Number.isInteger(limit) ? 'LIMIT ?' : ''}
+    `
+
+    try {
+        const [rows] = await executeQuery(queryString, Number.isInteger(limit) ? [limit] : [])
+        return rows
+    } catch (error) {
+        console.error('Database error in getNewArrivals:', error)
+        throw error
+    }
+}
+
 // Get a single product by the specified ID
 export const getProductById = async id => {
     const queryString = `
@@ -85,12 +125,14 @@ export const updateProductById = async productData => {
     }
 
     const queryString = `
-        UPDATE product 
-        SET 
-            productName = ?, 
-            productDescription = ?, 
-            productPrice = ?, 
+        UPDATE product
+        SET
+            productName = ?,
+            productDescription = ?,
+            productPrice = ?,
             productCode = ?,
+            -- read here before productHidden below overwrites it, so this sees the row's old value
+            productShownAt = CASE WHEN productHidden = 1 AND ? = 0 THEN NOW() ELSE productShownAt END,
             productHidden = ?,
             productSpecial = ?,
             productSpecialPrice = ?,
@@ -109,6 +151,7 @@ export const updateProductById = async productData => {
             productData.productDescription,
             productData.productPrice,
             productData.productCode,
+            productData.productHidden, // for the CASE check above
             productData.productHidden,
             productData.productSpecial,
             productData.productSpecialPrice,
@@ -149,19 +192,20 @@ export const addProduct = async productData => {
             productName, 
             productDescription, 
             productPrice, 
-            productCode, 
-            productHidden, 
-            productSpecial, 
-            productSpecialPrice, 
-            productStock, 
-            productImage0, 
-            productImage1, 
-            productImage2, 
+            productCode,
+            productHidden,
+            productShownAt,
+            productSpecial,
+            productSpecialPrice,
+            productStock,
+            productImage0,
+            productImage1,
+            productImage2,
             productImage3,
             productFileName,
             categoryID,
             productFeatured
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
 
     // If setting this product as featured, remove featured status from other products in same category
@@ -176,6 +220,7 @@ export const addProduct = async productData => {
             productData.productPrice,
             productData.productCode,
             productData.productHidden,
+            productData.productHidden ? null : new Date(), // shown from the start, unless added hidden
             productData.productSpecial,
             productData.productSpecialPrice,
             productData.productStock,
@@ -241,9 +286,17 @@ export const updateProducts = async (productIDs, changes) => {
     const fields = Object.keys(changes).filter(field => BULK_UPDATABLE.includes(field))
     if (!fields.length) throw new Error('No updatable fields given')
 
+    // becoming visible sets productShownAt to now. This has to run before productHidden itself is overwritten
+    // below, so the `productHidden` it reads here is still the row's old value.
+    const setClauses = []
+    if (fields.includes('productHidden') && Number(changes.productHidden) === 0) {
+        setClauses.push('productShownAt = CASE WHEN productHidden = 1 THEN NOW() ELSE productShownAt END')
+    }
+    setClauses.push(...fields.map(field => `${field} = ?`))
+
     try {
         const [result] = await executeQuery(
-            `UPDATE product SET ${fields.map(field => `${field} = ?`).join(', ')} WHERE productID IN (?)`,
+            `UPDATE product SET ${setClauses.join(', ')} WHERE productID IN (?)`,
             [...fields.map(field => changes[field]), productIDs],
         )
         return result.affectedRows

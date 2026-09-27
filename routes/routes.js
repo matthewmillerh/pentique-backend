@@ -11,6 +11,7 @@ import {
     bulkUpdateProductsController,
     bulkDeleteProductsController,
     searchProductsController,
+    newArrivalsController,
 } from '../controllers/product.js'
 
 //import category functions
@@ -65,6 +66,10 @@ router.get('/products-by-category/:categoryID', getProductsByCategoryController)
 
 //search the store (before /products/:id, which would otherwise take "search" as an id)
 router.get('/products/search', searchProductsController)
+
+// Products made visible in the last 7 days, for the home page row and the New Arrivals page
+// (before /products/:id, which would otherwise take "new-arrivals" as an id)
+router.get('/products/new-arrivals', newArrivalsController)
 
 //get a single product by id
 router.get('/products/:id', getProductByIdController)
